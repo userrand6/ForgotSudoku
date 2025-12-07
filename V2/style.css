@@ -1,0 +1,161 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f0f0f0; /* Lighter background */
+    margin: 0;
+}
+
+
+/* Update container to align items horizontally */
+.container {
+    display: flex; /* Establish a flex layout */
+    flex-direction: row; /* Side-by-side */
+    align-items: flex-start; /* Align both to the top */
+    gap: 40px; /* Space between the grid and the right panel */
+    text-align: center;
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Create a wrapper for the number pad and buttons on the right */
+.side-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 250px;
+}
+
+/* Ensure the grid doesn't have unnecessary auto-centering margins */
+#sudoku-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin: 0; /* Remove auto margins */
+}
+
+.sudoku-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    width: 450px;
+    height: 450px;
+    border: 4px solid #333; /* Thicker main border */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.cell {
+    border: 1px solid #ddd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    background-color: white; /* User input cells */
+    transition: background-color 0.1s;
+}
+
+/* Thicker borders for the 3x3 regions */
+.cell:nth-child(3n) { border-right-width: 3px; border-right-color: #333; }
+.cell:nth-child(9n) { border-right-width: 1px; border-right-color: #ddd; } /* Override 3n for the last column */
+.cell:nth-child(9n+1):nth-child(n) { border-left-width: 4px; border-left-color: #333; } /* First column */
+
+/* Thicker bottom borders for 3x3 rows */
+.cell:nth-child(n+19):nth-child(-n+27),
+.cell:nth-child(n+46):nth-child(-n+54) {
+    border-bottom-color: #333;
+    border-bottom-width: 3px;
+}
+
+/* Clue (pre-filled) cell styling */
+.clue {
+    background-color: #f8f8f8;
+    color: #444;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Currently selected cell */
+.selected {
+    background-color: #bbdefb; /* Light blue highlight */
+}
+
+/* Error/Wrong Entry styling (RED) */
+.error {
+    background-color: #ffdddd !important; /* Red background for error */
+    color: red;
+}
+
+/* Trophy Display (Overlay) */
+#trophy-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 150px;
+    opacity: 0;
+    transition: opacity 1s, transform 1s;
+    z-index: 10;
+    pointer-events: none;
+}
+.trophy-shown {
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* --- Number Pad Styling --- */
+.number-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 250px;
+    margin: 20px auto 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.num-button {
+    padding: 15px;
+    border: 1px solid #ddd;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    background-color: #e9e9e9;
+    transition: background-color 0.1s;
+}
+
+.num-button:hover {
+    background-color: #dcdcdc;
+}
+
+.clear-button {
+    grid-column: span 3;
+    background-color: #f7e0e0;
+    color: #cc0000;
+}
+
+/* Control Button and Message */
+.controls button {
+    padding: 10px 20px;
+    margin-top: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+#message {
+    margin-top: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    height: 20px;
+}

@@ -68,32 +68,70 @@ function generateFullGrid() {
     return board;
 }
 
+// function generateMinimaPuzzle() {
+//     const fullGrid = generateFullGrid();
+//     const puzzle = fullGrid.map(row => [...row]);
+//     const cells = [];
+//     for (let r = 0; r < 9; r++) {
+//         for (let c = 0; c < 9; c++) {
+//             cells.push({ r, c });
+//         }
+//     }
+//     cells.sort(() => Math.random() - 0.5);
+
+//     let clues = 81;
+//     let i = 0;
+//     while (clues > 42 && i < cells.length) {
+//         const { r, c } = cells[i];
+//         const originalValue = puzzle[r][c];
+//         if (originalValue !== 0) {
+//             puzzle[r][c] = 0;
+//             const solutionsFound = solve(puzzle.map(row => [...row]), 2); 
+//             if (solutionsFound === 1) {
+//                 clues--;
+//             } else {
+//                 puzzle[r][c] = originalValue;
+//             }
+//         }
+//         i++;
+//     }
+//     return puzzle;
+// }
+
+
 function generateMinimaPuzzle() {
     const fullGrid = generateFullGrid();
     const puzzle = fullGrid.map(row => [...row]);
-    const cells = [];
-    for (let r = 0; r < 9; r++) {
-        for (let c = 0; c < 9; c++) {
-            cells.push({ r, c });
-        }
-    }
-    cells.sort(() => Math.random() - 0.5);
-
+    
     let clues = 81;
-    let i = 0;
-    while (clues > 42 && i < cells.length) {
-        const { r, c } = cells[i];
-        const originalValue = puzzle[r][c];
-        if (originalValue !== 0) {
-            puzzle[r][c] = 0;
-            const solutionsFound = solve(puzzle.map(row => [...row]), 2); 
-            if (solutionsFound === 1) {
-                clues--;
-            } else {
-                puzzle[r][c] = originalValue;
-            }
+    let attempts = 0;
+    const maxAttempts = 150; // Safety limit to prevent infinite loops
+
+    while (clues > 42 && attempts < maxAttempts) {
+        // Pick a truly random row and column
+        const r = Math.floor(Math.random() * 9);
+        const c = Math.floor(Math.random() * 9);
+
+        // If the cell is already empty, skip this attempt
+        if (puzzle[r][c] === 0) {
+            attempts++;
+            continue;
         }
-        i++;
+
+        const originalValue = puzzle[r][c];
+        puzzle[r][c] = 0;
+
+        // Check for unique solution (solve count should be 1)
+        const solutionsFound = solve(puzzle.map(row => [...row]), 2); 
+        
+        if (solutionsFound === 1) {
+            clues--;
+            attempts = 0; // Reset attempts on successful removal
+        } else {
+            // Restore if unique solution is lost
+            puzzle[r][c] = originalValue;
+            attempts++;
+        }
     }
     return puzzle;
 }

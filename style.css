@@ -153,6 +153,25 @@ body {
     border-radius: 5px;
 }
 
+footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 30px;
+    border-top: 1px solid #ddd;
+    font-family: sans-serif;
+}
+
+footer a {
+    color: #24292e; /* GitHub Dark Gray */
+    text-decoration: none;
+    font-weight: bold;
+}
+
+footer a:hover {
+    text-decoration: underline;
+    color: #0366d6; /* GitHub Blue */
+}
+
 #message {
     margin-top: 10px;
     font-size: 18px;

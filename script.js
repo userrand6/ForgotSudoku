@@ -402,6 +402,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+
 function handleNavigation(key) {
     let r = 0;
     let c = 0;
@@ -440,9 +441,24 @@ if (difficultySelectEl) {
 }
 
 // Event listener for the Number Pad
+// document.querySelectorAll('.num-button').forEach(button => {
+//     button.addEventListener('click', (e) => {
+//         const value = parseInt(e.target.dataset.value);
+//         applyValue(value);
+//     });
+// });
+
+
+// Event listener for the Number Pad
 document.querySelectorAll('.num-button').forEach(button => {
     button.addEventListener('click', (e) => {
-        const value = parseInt(e.target.dataset.value);
+        let value = parseInt(e.target.dataset.value); 
+        
+        // **SAFTEY CHECK ADDED HERE**
+        if (isNaN(value)) {
+            value = 0; // Assume any non-numeric value from the number pad is a request to clear/erase
+        }
+        
         applyValue(value);
     });
 });

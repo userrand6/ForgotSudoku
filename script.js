@@ -340,14 +340,14 @@ function isBoardCorrect() {
 
 function gameOver(win) {
     if (win) {
-        messageEl.textContent = '🎉 Solved! Starting a new game in 5 seconds...';
+        messageEl.textContent = '🎉 Gelöst!';
         trophyEl.classList.add('trophy-shown');
         numberPadEl.style.pointerEvents = 'none';
         gridEl.style.pointerEvents = 'none';
 
         setTimeout(() => {
             newGame();
-        }, 5000);
+        }, 100000);
     }
 }
 

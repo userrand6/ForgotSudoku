@@ -17,3 +17,5 @@ https://userrand6.github.io/ForgotSudoku/
   `https://userrand6.github.io/ForgotSudoku/?clues=60` (oder `?easy=60` / `?zahlen=60`)
 - **Auf Standard zurücksetzen (47 vorgegebene Zahlen):**
   `https://userrand6.github.io/ForgotSudoku/?reset=1` (oder `?easy=0`)
+- **Gewinn-Bildschirm direkt testen / anzeigen:**
+  `https://userrand6.github.io/ForgotSudoku/?win=1` (oder `?testwin=1`)

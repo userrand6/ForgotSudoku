@@ -67,16 +67,6 @@
                         <button id="resume-btn" class="primary-btn">Weiter</button>
                     </div>
                 </div>
-
-                <!-- Win / Trophy Overlay -->
-                <div id="win-overlay" class="board-overlay win-overlay" style="display: none;">
-                    <div class="overlay-card">
-                        <div class="win-trophy" id="trophy-display">🏆</div>
-                        <h2 class="win-title" id="win-title">Ausgezeichnet!</h2>
-                        <p class="win-subtitle" id="win-stats-text">Rätsel gelöst</p>
-                        <button id="win-new-game-btn" class="primary-btn">Neues Spiel</button>
-                    </div>
-                </div>
             </div>
 
             <!-- Right Side Panel (Exact vertical order from screenshot) -->
@@ -179,11 +169,96 @@
                 <a href="?easy=3"><code>?easy=3</code></a> (70 Vorgaben) ·
                 <a href="?clues=60"><code>?clues=35..78</code></a> (exakte Anzahl) ·
                 <a href="?reset=1"><code>?reset=1</code></a> (Standard: 47) ·
+                <a href="?win=1"><code>?win=1</code></a> (Gewinn-Vorschau) ·
                 Sprache: <a href="?lang=de"><code>?lang=de</code></a> / <a href="?lang=en"><code>?lang=en</code></a> ·
                 <a href="https://github.com/userrand6/ForgotSudoku" target="_blank" rel="noopener noreferrer">GitHub</a>
             </p>
         </div>
     </footer>
+
+    <!-- Fullscreen Win Screen Overlay (Authentic End-Game Screen) -->
+    <div id="win-overlay" class="win-screen-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="Gewonnen">
+        <div class="win-screen-container">
+            <!-- Left Column: Solved Mini Sudoku Grid + Ad Banner -->
+            <div class="win-left-col">
+                <div class="win-mini-board-wrapper">
+                    <div id="win-mini-grid" class="win-mini-grid" aria-label="Gelöstes Sudoku Spielfeld"></div>
+                </div>
+
+                <!-- Ad Banner matching screenshot -->
+                <div class="win-ad-banner" id="win-ad-banner">
+                    <div class="win-ad-left">
+                        <div class="win-ad-logo">
+                            <svg viewBox="0 0 44 44" width="44" height="44" style="border-radius: 4px; display: block;">
+                                <rect width="44" height="44" fill="#09090b" rx="4"/>
+                                <text x="22" y="25" text-anchor="middle" fill="#ffffff" font-family="Georgia, serif" font-size="6.5" font-weight="300" letter-spacing="0.4">Candlelight</text>
+                            </svg>
+                        </div>
+                        <div class="win-ad-text">
+                            <span class="win-ad-sub" id="win-ad-sub">Candlelight</span>
+                            <strong class="win-ad-title" id="win-ad-title">Candlelight Bielefeld</strong>
+                        </div>
+                    </div>
+                    <button type="button" class="win-ad-btn" id="win-ad-btn">Öffnen</button>
+                    <div class="win-ad-choices" title="AdChoices" aria-hidden="true">
+                        <svg viewBox="0 0 12 12" width="10" height="10" fill="#0284c7">
+                            <polygon points="1,1 11,6 1,11"/>
+                        </svg>
+                        <span>i</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Heading, Bestpunktzahl, Turnier, Neues Spiel -->
+            <div class="win-right-col">
+                <h2 class="win-screen-title" id="win-title">Großartig!</h2>
+
+                <!-- Section 1: Bestpunktzahl -->
+                <div class="win-card-section">
+                    <div class="win-section-label" id="win-best-label">Bestpunktzahl</div>
+                    <div class="win-stats-card">
+                        <div class="win-stat-row">
+                            <span class="win-stat-name" id="win-label-today">Heute</span>
+                            <span class="win-stat-val" id="win-stat-today">11.525</span>
+                        </div>
+                        <div class="win-stat-row">
+                            <span class="win-stat-name" id="win-label-week">Diese Woche</span>
+                            <span class="win-stat-val" id="win-stat-week">13.850</span>
+                        </div>
+                        <div class="win-stat-row">
+                            <span class="win-stat-name" id="win-label-month">Dieser Monat</span>
+                            <span class="win-stat-val" id="win-stat-month">19.185</span>
+                        </div>
+                        <div class="win-stat-row">
+                            <span class="win-stat-name" id="win-label-total">Gesamt</span>
+                            <span class="win-stat-val" id="win-stat-total">40.715</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Turnier -->
+                <div class="win-card-section">
+                    <div class="win-section-header-row">
+                        <span class="win-section-label" id="win-tournament-label">Turnier</span>
+                        <button type="button" class="win-tournament-pill-btn" id="win-tournament-btn">Alle anzeigen</button>
+                    </div>
+                    <div class="win-stats-card">
+                        <div class="win-stat-row">
+                            <span class="win-stat-name" id="win-label-rank">Platzierung</span>
+                            <span class="win-stat-val" id="win-stat-rank">13</span>
+                        </div>
+                        <div class="win-stat-row">
+                            <span class="win-stat-name" id="win-label-tournament-score">Gesamtpunktzahl</span>
+                            <span class="win-stat-val" id="win-stat-tournament-score">757.775</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Neues Spiel Button -->
+                <button type="button" id="win-new-game-btn" class="win-new-game-btn">Neues Spiel</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

@@ -238,7 +238,20 @@ const I18N = {
         newGame: 'Neues Spiel',
         pauseTitle: 'Spiel pausiert',
         resume: 'Weiter',
-        winTitle: 'Ausgezeichnet!',
+        winTitle: 'Großartig!',
+        bestScores: 'Bestpunktzahl',
+        today: 'Heute',
+        thisWeek: 'Diese Woche',
+        thisMonth: 'Dieser Monat',
+        total: 'Gesamt',
+        tournament: 'Turnier',
+        showAll: 'Alle anzeigen',
+        rank: 'Platzierung',
+        tournamentScore: 'Gesamtpunktzahl',
+        adSub: 'Candlelight',
+        adTitle: 'Candlelight Bielefeld',
+        adBtn: 'Öffnen',
+        tournamentInfo: 'Turnier-Rangliste: Platz 13 von 1.500 Spielern',
         selectCellFirst: ''
     },
     en: {
@@ -260,7 +273,20 @@ const I18N = {
         newGame: 'New Game',
         pauseTitle: 'Game Paused',
         resume: 'Resume',
-        winTitle: 'Excellent!',
+        winTitle: 'Great!',
+        bestScores: 'Best score',
+        today: 'Today',
+        thisWeek: 'This week',
+        thisMonth: 'This month',
+        total: 'Total',
+        tournament: 'Tournament',
+        showAll: 'Show all',
+        rank: 'Rank',
+        tournamentScore: 'Total score',
+        adSub: 'Candlelight',
+        adTitle: 'Candlelight Bielefeld',
+        adBtn: 'Open',
+        tournamentInfo: 'Tournament ranking: Rank 13 of 1,500 players',
         selectCellFirst: ''
     }
 };
@@ -415,6 +441,7 @@ function generateSudokuPuzzle(targetClues, difficulty) {
 // ============================================================================
 
 const STORAGE_KEY = 'forgot_sudoku_state_v3';
+const STATS_STORAGE_KEY = 'forgot_sudoku_stats_v1';
 
 const gridEl = document.getElementById('sudoku-grid');
 const newGameBtn = document.getElementById('new-game-btn');
@@ -432,7 +459,9 @@ const playIconEl = document.getElementById('play-icon');
 const pauseOverlayEl = document.getElementById('pause-overlay');
 const resumeBtn = document.getElementById('resume-btn');
 const winOverlayEl = document.getElementById('win-overlay');
-const winStatsTextEl = document.getElementById('win-stats-text');
+const winMiniGridEl = document.getElementById('win-mini-grid');
+const winTournamentBtn = document.getElementById('win-tournament-btn');
+const winAdBtn = document.getElementById('win-ad-btn');
 const scoreDisplayEl = document.getElementById('score-display');
 const diffTabs = document.querySelectorAll('.diff-tab');
 const numButtons = document.querySelectorAll('.num-button');
@@ -454,6 +483,88 @@ let elapsedSeconds = 0;
 let timerInterval = null;
 let autoNewGameTimeout = null;
 
+function getStoredStats() {
+    try {
+        const raw = localStorage.getItem(STATS_STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed.today === 'number') {
+                return parsed;
+            }
+        }
+    } catch (e) {}
+
+    // Initial base high scores matching the original design
+    return {
+        today: 11525,
+        thisWeek: 13850,
+        thisMonth: 19185,
+        total: 40715,
+        rank: 13,
+        tournamentScore: 757775
+    };
+}
+
+function updateWinStats(earnedScore) {
+    const stats = getStoredStats();
+    const scoreToAdd = Math.max(earnedScore || 0, 150);
+    stats.today += scoreToAdd;
+    stats.thisWeek += scoreToAdd;
+    stats.thisMonth += scoreToAdd;
+    stats.total += scoreToAdd;
+    stats.tournamentScore += scoreToAdd;
+
+    try {
+        localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
+    } catch (e) {}
+
+    return stats;
+}
+
+function displayWinStats(stats) {
+    const locale = currentLang === 'de' ? 'de-DE' : 'en-US';
+    const todayEl = document.getElementById('win-stat-today');
+    const weekEl = document.getElementById('win-stat-week');
+    const monthEl = document.getElementById('win-stat-month');
+    const totalEl = document.getElementById('win-stat-total');
+    const rankEl = document.getElementById('win-stat-rank');
+    const tournamentScoreEl = document.getElementById('win-stat-tournament-score');
+
+    if (todayEl) todayEl.textContent = stats.today.toLocaleString(locale);
+    if (weekEl) weekEl.textContent = stats.thisWeek.toLocaleString(locale);
+    if (monthEl) monthEl.textContent = stats.thisMonth.toLocaleString(locale);
+    if (totalEl) totalEl.textContent = stats.total.toLocaleString(locale);
+    if (rankEl) rankEl.textContent = stats.rank.toLocaleString(locale);
+    if (tournamentScoreEl) tournamentScoreEl.textContent = stats.tournamentScore.toLocaleString(locale);
+}
+
+function renderMiniBoard() {
+    if (!winMiniGridEl) return;
+    winMiniGridEl.innerHTML = '';
+
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'win-mini-cell';
+
+            if (c % 3 === 2 && c !== 8) cell.classList.add('mini-border-right-thick');
+            if (r % 3 === 2 && r !== 8) cell.classList.add('mini-border-bottom-thick');
+
+            const val = (userBoard[r] && userBoard[r][c])
+                ? userBoard[r][c]
+                : (solution[r] ? solution[r][c] : 0);
+            const isInitial = currentPuzzle[r] && currentPuzzle[r][c] !== 0;
+
+            if (val !== 0) {
+                cell.textContent = String(val);
+                cell.classList.add(isInitial ? 'mini-cell-clue' : 'mini-cell-user');
+            }
+
+            winMiniGridEl.appendChild(cell);
+        }
+    }
+}
+
 function applyLanguageUI() {
     const t = I18N[currentLang] || I18N.de;
     document.documentElement.lang = currentLang;
@@ -468,10 +579,37 @@ function applyLanguageUI() {
     document.getElementById('time-label').textContent = t.time;
     notesBadgeEl.textContent = isNotesMode ? t.on : t.off;
     newGameBtn.textContent = t.newGame;
-    winNewGameBtn.textContent = t.newGame;
     document.getElementById('pause-title').textContent = t.pauseTitle;
     resumeBtn.textContent = t.resume;
-    document.getElementById('win-title').textContent = t.winTitle;
+
+    // Win Screen Elements
+    const winTitleEl = document.getElementById('win-title');
+    if (winTitleEl) winTitleEl.textContent = t.winTitle;
+    const bestScoresEl = document.getElementById('win-best-label');
+    if (bestScoresEl) bestScoresEl.textContent = t.bestScores;
+    const todayLabelEl = document.getElementById('win-label-today');
+    if (todayLabelEl) todayLabelEl.textContent = t.today;
+    const weekLabelEl = document.getElementById('win-label-week');
+    if (weekLabelEl) weekLabelEl.textContent = t.thisWeek;
+    const monthLabelEl = document.getElementById('win-label-month');
+    if (monthLabelEl) monthLabelEl.textContent = t.thisMonth;
+    const totalLabelEl = document.getElementById('win-label-total');
+    if (totalLabelEl) totalLabelEl.textContent = t.total;
+    const tournamentLabelEl = document.getElementById('win-tournament-label');
+    if (tournamentLabelEl) tournamentLabelEl.textContent = t.tournament;
+    const showAllBtnEl = document.getElementById('win-tournament-btn');
+    if (showAllBtnEl) showAllBtnEl.textContent = t.showAll;
+    const rankLabelEl = document.getElementById('win-label-rank');
+    if (rankLabelEl) rankLabelEl.textContent = t.rank;
+    const tournScoreLabelEl = document.getElementById('win-label-tournament-score');
+    if (tournScoreLabelEl) tournScoreLabelEl.textContent = t.tournamentScore;
+    if (winNewGameBtn) winNewGameBtn.textContent = t.newGame;
+    const adSubEl = document.getElementById('win-ad-sub');
+    if (adSubEl) adSubEl.textContent = t.adSub;
+    const adTitleEl = document.getElementById('win-ad-title');
+    if (adTitleEl) adTitleEl.textContent = t.adTitle;
+    const adBtnEl = document.getElementById('win-ad-btn');
+    if (adBtnEl) adBtnEl.textContent = t.adBtn;
 }
 
 // --- Helpers for Notes & History ---
@@ -967,15 +1105,18 @@ function handleGameWon() {
     stopTimer();
     clearSavedGameState();
 
-    const t = I18N[currentLang] || I18N.de;
-    const diffLabel = t.diffs[currentDifficulty] || t.diffs.easy;
-    winStatsTextEl.textContent = `${diffLabel} • ${formatTime(elapsedSeconds)}`;
-    winOverlayEl.style.display = 'flex';
+    const stats = updateWinStats(currentScore);
+    displayWinStats(stats);
+    renderMiniBoard();
+
+    if (winOverlayEl) {
+        winOverlayEl.style.display = 'flex';
+    }
 
     if (autoNewGameTimeout) clearTimeout(autoNewGameTimeout);
     autoNewGameTimeout = setTimeout(() => {
         newGame(currentDifficulty);
-    }, 100000);
+    }, 120000);
 }
 
 // --- Starting / Restoring a Game ---
@@ -1035,6 +1176,9 @@ function newGame(difficulty = currentDifficulty) {
 
 function initGame() {
     applyLanguageUI();
+    const params = new URLSearchParams(window.location.search);
+    const shouldTestWin = params.get('win') === '1' || params.get('testwin') === '1';
+
     if (loadSavedGameState() && !isBoardSolved()) {
         updateDifficultyTabsUI(currentDifficulty);
         updateTimerDisplay();
@@ -1045,6 +1189,12 @@ function initGame() {
         startTimer();
     } else {
         newGame('easy');
+    }
+
+    if (shouldTestWin) {
+        setTimeout(() => {
+            handleGameWon();
+        }, 150);
     }
 }
 
@@ -1099,6 +1249,19 @@ document.addEventListener('keydown', (e) => {
 
 newGameBtn.addEventListener('click', () => newGame(currentDifficulty));
 winNewGameBtn.addEventListener('click', () => newGame(currentDifficulty));
+
+if (winTournamentBtn) {
+    winTournamentBtn.addEventListener('click', () => {
+        const t = I18N[currentLang] || I18N.de;
+        alert(t.tournamentInfo);
+    });
+}
+
+if (winAdBtn) {
+    winAdBtn.addEventListener('click', () => {
+        window.open('https://candlelightexperience.com/', '_blank');
+    });
+}
 
 diffTabs.forEach(tab => {
     tab.addEventListener('click', () => {

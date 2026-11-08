@@ -337,7 +337,7 @@ body {
     font-weight: 700;
 }
 
-/* --- Overlays (Pause & Win) --- */
+/* --- Pause Overlay --- */
 .board-overlay {
     position: absolute;
     inset: 0;
@@ -362,25 +362,6 @@ body {
     margin-bottom: 18px;
 }
 
-.win-trophy {
-    font-size: 72px;
-    line-height: 1;
-    margin-bottom: 12px;
-}
-
-.win-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text-main);
-    margin: 0 0 8px;
-}
-
-.win-subtitle {
-    font-size: 16px;
-    color: var(--text-muted);
-    margin: 0 0 24px;
-}
-
 .primary-btn {
     background-color: var(--new-game-blue);
     color: #ffffff;
@@ -395,6 +376,337 @@ body {
 
 .primary-btn:hover {
     background-color: var(--new-game-blue-hover);
+}
+
+/* ==========================================================================
+   Fullscreen Win Screen Overlay (Authentic Blue Sunburst End Screen)
+   ========================================================================== */
+.win-screen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    background-color: #0b459c;
+    background-image:
+        radial-gradient(ellipse at 28% 45%, rgba(35, 110, 225, 0.72) 0%, rgba(10, 50, 130, 0.92) 55%, #051c4a 100%),
+        repeating-conic-gradient(
+            from -6deg at 28% 45%,
+            rgba(255, 255, 255, 0.08) 0deg 6deg,
+            rgba(0, 0, 0, 0.12) 6deg 12deg
+        );
+    overflow-y: auto;
+    box-sizing: border-box;
+    backdrop-filter: blur(4px);
+    animation: winOverlayFadeIn 0.3s ease-out;
+}
+
+@keyframes winOverlayFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.win-screen-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 52px;
+    max-width: 820px;
+    width: 100%;
+    margin: auto;
+    position: relative;
+    z-index: 2;
+}
+
+/* Left Column: Solved Mini Grid + Ad Banner */
+.win-left-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 380px;
+    flex-shrink: 0;
+}
+
+.win-mini-board-wrapper {
+    background: #ffffff;
+    padding: 6px;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    display: inline-block;
+}
+
+.win-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 23px);
+    grid-template-rows: repeat(9, 23px);
+    border: 2px solid #2b2b2b;
+    background-color: #ffffff;
+}
+
+.win-mini-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-family: inherit;
+    border-right: 1px solid #d8dee4;
+    border-bottom: 1px solid #d8dee4;
+    user-select: none;
+    line-height: 1;
+}
+
+.win-mini-cell.mini-border-right-thick {
+    border-right: 2px solid #2b2b2b;
+}
+
+.win-mini-cell.mini-border-bottom-thick {
+    border-bottom: 2px solid #2b2b2b;
+}
+
+.win-mini-cell:nth-child(9n) {
+    border-right: none;
+}
+
+.win-mini-cell:nth-child(n+73) {
+    border-bottom: none;
+}
+
+.win-mini-cell.mini-cell-clue {
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.win-mini-cell.mini-cell-user {
+    color: #1565c0;
+    font-weight: 700;
+}
+
+/* Ad Banner */
+.win-ad-banner {
+    position: relative;
+    width: 295px;
+    background: #f4f5f7;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+    box-sizing: border-box;
+}
+
+.win-ad-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.win-ad-logo {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+}
+
+.win-ad-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.win-ad-sub {
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.2;
+}
+
+.win-ad-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.win-ad-btn {
+    background: #18181b;
+    color: #ffffff;
+    border: none;
+    border-radius: 9999px;
+    padding: 7px 16px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+
+.win-ad-btn:hover {
+    background: #27272a;
+}
+
+.win-ad-choices {
+    position: absolute;
+    bottom: 3px;
+    left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    font-size: 8px;
+    color: #0284c7;
+    cursor: default;
+    opacity: 0.85;
+}
+
+/* Right Column: Title, Cards, New Game Button */
+.win-right-col {
+    display: flex;
+    flex-direction: column;
+    width: 360px;
+}
+
+.win-screen-title {
+    color: #ffffff;
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.win-card-section {
+    margin-bottom: 16px;
+}
+
+.win-section-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.88);
+    margin-bottom: 6px;
+}
+
+.win-section-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.win-tournament-pill-btn {
+    background: #ffffff;
+    color: #1254ba;
+    border: none;
+    border-radius: 9999px;
+    padding: 4px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: background 0.15s, transform 0.1s;
+}
+
+.win-tournament-pill-btn:hover {
+    background: #f0f5ff;
+}
+
+.win-tournament-pill-btn:active {
+    transform: scale(0.97);
+}
+
+.win-stats-card {
+    background: rgba(8, 34, 82, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 2px 18px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.win-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.win-stat-row:last-child {
+    border-bottom: none;
+}
+
+.win-stat-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.win-stat-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    font-feature-settings: "tnum";
+}
+
+.win-new-game-btn {
+    background: #ffffff;
+    color: #1254ba;
+    border: none;
+    border-radius: 10px;
+    width: 100%;
+    padding: 14px 20px;
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 4px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+    transition: background 0.15s, transform 0.1s;
+}
+
+.win-new-game-btn:hover {
+    background: #f0f5ff;
+}
+
+.win-new-game-btn:active {
+    transform: scale(0.99);
+}
+
+@media (max-width: 768px) {
+    .win-screen-overlay {
+        padding: 20px 12px;
+    }
+    .win-screen-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    .win-left-col {
+        min-height: auto;
+        gap: 16px;
+    }
+    .win-right-col {
+        width: 100%;
+        max-width: 380px;
+    }
+    .win-screen-title {
+        text-align: center;
+        font-size: 28px;
+        margin-bottom: 12px;
+    }
+    .win-ad-banner {
+        width: min(100%, 340px);
+    }
 }
 
 /* ==========================================================================

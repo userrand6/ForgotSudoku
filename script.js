@@ -1,21 +1,21 @@
-// --- Core Sudoku Logic (Backtracking) ---
+// ============================================================================
+// Sudoku.com Authentic Clone - Forgiving & Dementia-Friendly Edition
+// ============================================================================
 
-/**
- * Checks if placing 'num' at (row, col) is valid based on Sudoku rules.
- */
+// --- Core Sudoku Logic (MRV Backtracker & Step-by-Step Human Technique Solver) ---
+
 function isValid(board, row, col, num) {
-    // Check row and column
     for (let i = 0; i < 9; i++) {
-        if (board[row][i] === num || board[i][col] === num) {
-            return false;
-        }
+        if (i !== col && board[row][i] === num) return false;
+        if (i !== row && board[i][col] === num) return false;
     }
-    // Check 3x3 box
     const startRow = Math.floor(row / 3) * 3;
     const startCol = Math.floor(col / 3) * 3;
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            if (board[startRow + i][startCol + j] === num) {
+    for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+            const nr = startRow + r;
+            const nc = startCol + c;
+            if ((nr !== row || nc !== col) && board[nr][nc] === num) {
                 return false;
             }
         }
@@ -23,314 +23,938 @@ function isValid(board, row, col, num) {
     return true;
 }
 
-/**
- * Solves the Sudoku puzzle using the Backtracking algorithm.
- * If solutions is 1, it finds and returns the first solution (mutating the board).
- * If solutions > 1, it counts the number of solutions and returns the count.
- */
-function solve(board, solutions = 1) {
-    let count = 0;
+function findCandidates(board, row, col) {
+    if (board[row][col] !== 0) return [];
+    const used = new Array(10).fill(false);
 
-    function backtrack() {
-        for (let row = 0; row < 9; row++) {
-            for (let col = 0; col < 9; col++) {
-                if (board[row][col] === 0) {
-                    // Use a shuffled array for randomness in generation/first solution
-                    const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
-                    
-                    for (const num of nums) {
-                        if (isValid(board, row, col, num)) {
-                            board[row][col] = num;
-                            
-                            if (solutions === 1) {
-                                // If seeking a single solution, return true immediately upon finding it
-                                if (backtrack()) return true;
-                            } else {
-                                // If counting multiple solutions
-                                if (backtrack()) {
-                                    count++;
-                                    if (count >= solutions) return true; // Stop once the target count is reached
-                                }
-                            }
-                            board[row][col] = 0; // Backtrack
-                        }
+    for (let i = 0; i < 9; i++) {
+        if (board[row][i] !== 0) used[board[row][i]] = true;
+        if (board[i][col] !== 0) used[board[i][col]] = true;
+    }
+
+    const startRow = Math.floor(row / 3) * 3;
+    const startCol = Math.floor(col / 3) * 3;
+    for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+            const val = board[startRow + r][startCol + c];
+            if (val !== 0) used[val] = true;
+        }
+    }
+
+    const candidates = [];
+    for (let num = 1; num <= 9; num++) {
+        if (!used[num]) candidates.push(num);
+    }
+    return candidates;
+}
+
+/**
+ * Fast Sudoku solver using Minimum Remaining Values (MRV) heuristic.
+ */
+function solve(board, maxSolutions = 1) {
+    let solutionCount = 0;
+
+    function search() {
+        let bestRow = -1;
+        let bestCol = -1;
+        let bestCandidates = null;
+
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (board[r][c] === 0) {
+                    const cands = findCandidates(board, r, c);
+                    if (cands.length === 0) {
+                        return false;
                     }
-                    // If no number worked, return false (or stop counting if we hit the limit)
-                    return solutions === 1 ? false : (count >= solutions);
+                    if (bestCandidates === null || cands.length < bestCandidates.length) {
+                        bestRow = r;
+                        bestCol = c;
+                        bestCandidates = cands;
+                        if (cands.length === 1) break;
+                    }
                 }
             }
+            if (bestCandidates !== null && bestCandidates.length === 1) break;
         }
-        // Puzzle is full
-        return solutions === 1 ? true : (count++, count >= solutions);
+
+        if (bestRow === -1) {
+            solutionCount++;
+            return solutionCount >= maxSolutions;
+        }
+
+        if (maxSolutions === 1 && bestCandidates.length > 1) {
+            for (let i = bestCandidates.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [bestCandidates[i], bestCandidates[j]] = [bestCandidates[j], bestCandidates[i]];
+            }
+        }
+
+        for (const num of bestCandidates) {
+            board[bestRow][bestCol] = num;
+            if (search()) {
+                if (maxSolutions === 1) return true;
+                board[bestRow][bestCol] = 0;
+                return true;
+            }
+            board[bestRow][bestCol] = 0;
+        }
+
+        return false;
     }
 
-    // When counting solutions, work on a copy to avoid unintended mutation if necessary,
-    // though the recursive function handles the backtracking resets (board[r][c] = 0).
-    // Note: The logic handles both cases.
-    if (solutions === 1) {
-        return backtrack();
-    } else {
-        backtrack();
-        return count;
-    }
+    search();
+    return maxSolutions === 1 ? solutionCount > 0 : solutionCount;
 }
 
 function generateFullGrid() {
-    const board = Array(9).fill(0).map(() => Array(9).fill(0));
+    const board = Array.from({ length: 9 }, () => Array(9).fill(0));
     solve(board, 1);
     return board;
 }
 
-// --- Sudoku Technique Analysis for Difficulty Control ---
-
 /**
- * Finds all possible candidates (pencil marks) for a specific cell (row, col).
+ * Simulates solving the ENTIRE puzzle step-by-step using only human Singles techniques:
+ * - 'NAKED_ONLY': Only Naked Singles (cells where only 1 digit is possible in its row/col/box).
+ * - 'SINGLES': Naked Singles + Hidden Singles (a digit has only 1 possible position in a row/col/box).
  */
-function findCandidates(board, row, col) {
-    if (board[row][col] !== 0) return [];
-    
-    const candidates = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    
-    // Check row and column
-    for (let i = 0; i < 9; i++) {
-        if (board[row][i] !== 0) candidates.delete(board[row][i]);
-        if (board[i][col] !== 0) candidates.delete(board[i][col]);
-    }
-    
-    // Check 3x3 box
-    const startRow = Math.floor(row / 3) * 3;
-    const startCol = Math.floor(col / 3) * 3;
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            if (board[startRow + i][startCol + j] !== 0) {
-                candidates.delete(board[startRow + i][startCol + j]);
-            }
-        }
-    }
-    return Array.from(candidates);
-}
+function canSolveWithHumanSingles(puzzle, mode = 'SINGLES') {
+    const work = puzzle.map(row => [...row]);
 
-/**
- * Checks if the next solvable step is a simple Naked or Hidden Single.
- * This is used to guarantee that "Easy" puzzles are solvable by inspection.
- * Returns 'EASY_SINGLE' or 'REQUIRES_ADVANCED'.
- */
-function getRequiredTechniqueLevel(board) {
-    // Generate all candidates for all empty cells
-    const allCandidates = [];
-    for (let r = 0; r < 9; r++) {
-        allCandidates[r] = [];
-        for (let c = 0; c < 9; c++) {
-            allCandidates[r][c] = board[r][c] === 0 ? findCandidates(board, r, c) : [];
-            // 1. Check for Naked Singles (Level 1 - Easiest)
-            if (allCandidates[r][c].length === 1) {
-                return 'EASY_SINGLE';
-            }
-        }
-    }
-    
-    // 2. Check for Hidden Singles (Level 2 - Still Easy/Medium)
-    for (let i = 0; i < 9; i++) { // i is the unit index (0-8)
-        for (let num = 1; num <= 9; num++) { // num is the candidate value
+    while (true) {
+        let emptyCells = 0;
+        let progress = false;
+        const candsGrid = Array.from({ length: 9 }, () => Array(9).fill(null));
 
-            // Check Row i
-            let rowCount = 0;
+        for (let r = 0; r < 9; r++) {
             for (let c = 0; c < 9; c++) {
-                if (allCandidates[i][c].includes(num)) rowCount++;
-            }
-            if (rowCount === 1) return 'EASY_SINGLE';
-
-            // Check Column i
-            let colCount = 0;
-            for (let r = 0; r < 9; r++) {
-                if (allCandidates[r][i].includes(num)) colCount++;
-            }
-            if (colCount === 1) return 'EASY_SINGLE';
-            
-            // Check Box i
-            const startRow = Math.floor(i / 3) * 3;
-            const startCol = (i % 3) * 3;
-            let boxCount = 0;
-            for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 3; c++) {
-                    if (allCandidates[startRow + r][startCol + c].includes(num)) boxCount++;
+                if (work[r][c] === 0) {
+                    emptyCells++;
+                    const cands = findCandidates(work, r, c);
+                    if (cands.length === 0) return false;
+                    if (cands.length === 1) {
+                        work[r][c] = cands[0];
+                        progress = true;
+                    } else {
+                        candsGrid[r][c] = cands;
+                    }
                 }
             }
-            if (boxCount === 1) return 'EASY_SINGLE';
+        }
+
+        if (emptyCells === 0) return true;
+        if (progress) continue;
+        if (mode === 'NAKED_ONLY') return false;
+
+        for (let unit = 0; unit < 9; unit++) {
+            for (let num = 1; num <= 9; num++) {
+                let rowSpot = -1;
+                let rowCount = 0;
+                for (let c = 0; c < 9; c++) {
+                    if (candsGrid[unit][c] && candsGrid[unit][c].includes(num)) {
+                        rowCount++;
+                        rowSpot = c;
+                    }
+                }
+                if (rowCount === 1) {
+                    work[unit][rowSpot] = num;
+                    progress = true;
+                    break;
+                }
+
+                let colSpot = -1;
+                let colCount = 0;
+                for (let r = 0; r < 9; r++) {
+                    if (candsGrid[r][unit] && candsGrid[r][unit].includes(num)) {
+                        colCount++;
+                        colSpot = r;
+                    }
+                }
+                if (colCount === 1) {
+                    work[colSpot][unit] = num;
+                    progress = true;
+                    break;
+                }
+
+                const startRow = Math.floor(unit / 3) * 3;
+                const startCol = (unit % 3) * 3;
+                let boxR = -1;
+                let boxC = -1;
+                let boxCount = 0;
+                for (let dr = 0; dr < 3; dr++) {
+                    for (let dc = 0; dc < 3; dc++) {
+                        const r = startRow + dr;
+                        const c = startCol + dc;
+                        if (candsGrid[r][c] && candsGrid[r][c].includes(num)) {
+                            boxCount++;
+                            boxR = r;
+                            boxC = c;
+                        }
+                    }
+                }
+                if (boxCount === 1) {
+                    work[boxR][boxC] = num;
+                    progress = true;
+                    break;
+                }
+            }
+            if (progress) break;
+        }
+
+        if (!progress) return false;
+    }
+}
+
+// ============================================================================
+// Hidden URL Configuration (Easier Mode & Language DE / EN)
+// ============================================================================
+// Supported URL parameters (persisted in localStorage):
+//   ?easy=1  or ?leicht=1  -> Leichter (Einfach = 56 vorgegebene Zahlen, nur Naked Singles)
+//   ?easy=2  or ?leicht=2  -> Sehr leicht (Einfach = 63 vorgegebene Zahlen, nur Naked Singles)
+//   ?easy=3  or ?leicht=3  -> Ultra leicht (Einfach = 70 vorgegebene Zahlen, fast volle Reihen/Boxen)
+//   ?easy=65 or ?clues=65  -> Direkte Anzahl vorgegebener Zahlen (zwischen 35 und 78) für "Einfach"
+//   ?lang=de or ?lang=en   -> Sprache auf Deutsch oder Englisch (wie im Screenshot) stellen
+//   ?reset=1 or ?easy=0    -> Zurücksetzen auf Standard
+
+const CONFIG_STORAGE_KEY = 'forgot_sudoku_custom_config_v1';
+const LANG_STORAGE_KEY = 'forgot_sudoku_lang_v1';
+
+const I18N = {
+    de: {
+        classic: 'Klassisch',
+        killer: 'Killer',
+        difficultyLabel: 'Schwierigkeitsgrad:',
+        diffs: {
+            easy: 'Einfach',
+            medium: 'Mittel',
+            hard: 'Schwer',
+            expert: 'Experte',
+            master: 'Meister',
+            extreme: 'Extrem'
+        },
+        mistakes: 'Fehler',
+        time: 'Zeit',
+        off: 'AUS',
+        on: 'EIN',
+        newGame: 'Neues Spiel',
+        pauseTitle: 'Spiel pausiert',
+        resume: 'Weiter',
+        winTitle: 'Ausgezeichnet!',
+        selectCellFirst: ''
+    },
+    en: {
+        classic: 'Classic',
+        killer: 'Killer',
+        difficultyLabel: 'Difficulty:',
+        diffs: {
+            easy: 'Easy',
+            medium: 'Medium',
+            hard: 'Hard',
+            expert: 'Expert',
+            master: 'Master',
+            extreme: 'Extreme'
+        },
+        mistakes: 'Mistakes',
+        time: 'Time',
+        off: 'OFF',
+        on: 'ON',
+        newGame: 'New Game',
+        pauseTitle: 'Game Paused',
+        resume: 'Resume',
+        winTitle: 'Excellent!',
+        selectCellFirst: ''
+    }
+};
+
+function resolveLanguage() {
+    const params = new URLSearchParams(window.location.search);
+    const urlLang = params.get('lang');
+    if (urlLang === 'en' || urlLang === 'de') {
+        try { localStorage.setItem(LANG_STORAGE_KEY, urlLang); } catch (e) {}
+        return urlLang;
+    }
+    try {
+        const saved = localStorage.getItem(LANG_STORAGE_KEY);
+        if (saved === 'en' || saved === 'de') return saved;
+    } catch (e) {}
+    return 'de';
+}
+
+let currentLang = resolveLanguage();
+
+const BASE_DIFFICULTY_CONFIG = {
+    easy:    { clues: 47, solverMode: 'SINGLES' },
+    medium:  { clues: 38, solverMode: 'SINGLES' },
+    hard:    { clues: 32, solverMode: 'SINGLES' },
+    expert:  { clues: 28, solverMode: 'ANY' },
+    master:  { clues: 25, solverMode: 'ANY' },
+    extreme: { clues: 23, solverMode: 'ANY' }
+};
+
+function resolveDifficultyConfig() {
+    const params = new URLSearchParams(window.location.search);
+    let customEasyClues = null;
+    let urlChangedConfig = false;
+
+    if (params.get('reset') === '1' || params.get('easy') === '0' || params.get('leicht') === '0') {
+        try { localStorage.removeItem(CONFIG_STORAGE_KEY); } catch (e) {}
+        urlChangedConfig = true;
+    } else {
+        const rawParam =
+            params.get('clues') ??
+            params.get('zahlen') ??
+            params.get('easy') ??
+            params.get('leicht');
+
+        if (rawParam !== null && rawParam !== '') {
+            const num = parseInt(rawParam, 10);
+            if (rawParam === 'true' || num === 1) {
+                customEasyClues = 56;
+            } else if (num === 2) {
+                customEasyClues = 63;
+            } else if (num === 3) {
+                customEasyClues = 70;
+            } else if (num >= 4 && num <= 9) {
+                customEasyClues = Math.min(76, 52 + num * 3);
+            } else if (num >= 30 && num <= 78) {
+                customEasyClues = num;
+            }
+
+            if (customEasyClues !== null) {
+                try {
+                    const prev = localStorage.getItem(CONFIG_STORAGE_KEY);
+                    if (prev !== String(customEasyClues)) {
+                        urlChangedConfig = true;
+                    }
+                    localStorage.setItem(CONFIG_STORAGE_KEY, String(customEasyClues));
+                } catch (e) {}
+            }
+        } else {
+            try {
+                const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
+                if (saved) {
+                    const parsed = parseInt(saved, 10);
+                    if (parsed >= 30 && parsed <= 78) {
+                        customEasyClues = parsed;
+                    }
+                }
+            } catch (e) {}
         }
     }
 
-    // Check if the board is solved (no empty cells)
-    const solved = board.every(row => row.every(val => val !== 0));
-    return solved ? 'SOLVED' : 'REQUIRES_ADVANCED';
+    if (customEasyClues === null) {
+        return {
+            config: JSON.parse(JSON.stringify(BASE_DIFFICULTY_CONFIG)),
+            urlChangedConfig,
+            customEasyClues: null
+        };
+    }
+
+    const easyClues = Math.max(35, Math.min(78, customEasyClues));
+    const clamp = (v, min) => Math.max(min, Math.min(76, v));
+
+    return {
+        config: {
+            easy:    { clues: easyClues,              solverMode: easyClues >= 50 ? 'NAKED_ONLY' : 'SINGLES' },
+            medium:  { clues: clamp(easyClues - 4, 36), solverMode: 'SINGLES' },
+            hard:    { clues: clamp(easyClues - 8, 33), solverMode: 'SINGLES' },
+            expert:  { clues: clamp(easyClues - 11, 30), solverMode: 'SINGLES' },
+            master:  { clues: clamp(easyClues - 14, 28), solverMode: 'SINGLES' },
+            extreme: { clues: clamp(easyClues - 16, 26), solverMode: 'SINGLES' }
+        },
+        urlChangedConfig,
+        customEasyClues: easyClues
+    };
 }
 
+const resolvedSettings = resolveDifficultyConfig();
+const DIFFICULTY_CONFIG = resolvedSettings.config;
 
-/**
- * Generates a Sudoku puzzle by removing clues from a full grid until
- * a target number of remaining clues is reached, ensuring a unique solution.
- * For 'easy' difficulty, it also enforces that the next solvable step is a Single.
- * @param {number} targetClues The minimum number of clues to leave on the board.
- * @param {string} difficulty The difficulty level ('easy', 'medium', etc.).
- * @returns {number[][]} The generated Sudoku puzzle.
- */
 function generateSudokuPuzzle(targetClues, difficulty) {
     const fullGrid = generateFullGrid();
     const puzzle = fullGrid.map(row => [...row]);
-    
-    let clues = 81;
-    let attempts = 0;
-    const maxAttemptsPerRemoval = 50; 
+    const solverMode = DIFFICULTY_CONFIG[difficulty]?.solverMode || 'SINGLES';
 
-    // Create a shuffled list of cell coordinates for randomized removal order
+    let clues = 81;
     const removableCells = [];
     for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
             removableCells.push([r, c]);
         }
     }
-    removableCells.sort(() => Math.random() - 0.5);
+    for (let i = removableCells.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [removableCells[i], removableCells[j]] = [removableCells[j], removableCells[i]];
+    }
 
-    while (clues > targetClues && removableCells.length > 0) {
-        if (attempts >= maxAttemptsPerRemoval) break; 
-
-        const [r, c] = removableCells.pop(); // Get the next cell to test
-
+    for (let i = 0; i < removableCells.length && clues > targetClues; i++) {
+        const [r, c] = removableCells[i];
         const originalValue = puzzle[r][c];
-        puzzle[r][c] = 0; // Remove the clue temporarily
+        puzzle[r][c] = 0;
 
-        // 1. Check for Unique Solution (Must have only 1 solution)
-        const solutionsFound = solve(puzzle.map(row => [...row]), 2); 
-        
-        // 2. Check for Technique Level (Only enforce this for EASY mode)
-        let techniqueCheckPassed = true;
-        if (difficulty === 'easy' || difficulty === 'medium') { // Medium can also benefit from this check if desired
-            const requiredLevel = getRequiredTechniqueLevel(puzzle);
-            // If the puzzle requires a complex technique (Pairs/Triples/X-Wing, etc.), fail the removal.
-            if (requiredLevel === 'REQUIRES_ADVANCED') {
-                techniqueCheckPassed = false;
+        const solutionsFound = solve(puzzle.map(row => [...row]), 2);
+        if (solutionsFound !== 1) {
+            puzzle[r][c] = originalValue;
+            continue;
+        }
+
+        if (solverMode === 'NAKED_ONLY' || solverMode === 'SINGLES') {
+            if (!canSolveWithHumanSingles(puzzle, solverMode)) {
+                puzzle[r][c] = originalValue;
+                continue;
             }
         }
-        
-        if (solutionsFound === 1 && techniqueCheckPassed) {
-            clues--;
-            attempts = 0; // Successful removal: reset attempts
-        } else {
-            // Restore the clue
-            puzzle[r][c] = originalValue;
-            removableCells.unshift([r, c]); // Put the cell back for a later attempt
-            attempts++;
-        }
+
+        clues--;
     }
-    return puzzle;
+
+    return { puzzle, solution: fullGrid };
 }
 
-// --- DOM and Game Setup Logic ---
+// ============================================================================
+// DOM & Game State
+// ============================================================================
 
-// Get DOM elements
+const STORAGE_KEY = 'forgot_sudoku_state_v3';
+
 const gridEl = document.getElementById('sudoku-grid');
 const newGameBtn = document.getElementById('new-game-btn');
+const winNewGameBtn = document.getElementById('win-new-game-btn');
+const undoBtn = document.getElementById('undo-btn');
+const eraseBtn = document.getElementById('erase-btn');
+const notesBtn = document.getElementById('notes-btn');
+const notesBadgeEl = document.getElementById('notes-badge');
+const hintBtn = document.getElementById('hint-btn');
 const messageEl = document.getElementById('message');
-const numberPadEl = document.getElementById('number-pad');
-const trophyEl = document.getElementById('trophy-display');
-const difficultySelectEl = document.getElementById('difficulty-select'); 
+const timerDisplayEl = document.getElementById('timer-display');
+const timerToggleEl = document.getElementById('timer-toggle');
+const pauseIconEl = document.getElementById('pause-icon');
+const playIconEl = document.getElementById('play-icon');
+const pauseOverlayEl = document.getElementById('pause-overlay');
+const resumeBtn = document.getElementById('resume-btn');
+const winOverlayEl = document.getElementById('win-overlay');
+const winStatsTextEl = document.getElementById('win-stats-text');
+const scoreDisplayEl = document.getElementById('score-display');
+const diffTabs = document.querySelectorAll('.diff-tab');
+const numButtons = document.querySelectorAll('.num-button');
 
+let currentDifficulty = 'easy';
+let currentPuzzle = [];
+let userBoard = [];
+let solution = [];
+let notesBoard = [];
+let scoredCells = []; // 9x9 boolean grid so each solved cell awards points once
+let currentScore = 0;
+let historyStack = [];
+let selectedRow = null;
+let selectedCol = null;
+let isNotesMode = false;
+let isPaused = false;
+let isGameWon = false;
+let elapsedSeconds = 0;
+let timerInterval = null;
+let autoNewGameTimeout = null;
 
-let currentPuzzle = []; 
-let userBoard = [];     
-let solution = [];      
-let selectedCell = null; 
+function applyLanguageUI() {
+    const t = I18N[currentLang] || I18N.de;
+    document.documentElement.lang = currentLang;
+    document.getElementById('nav-classic').textContent = t.classic;
+    document.getElementById('nav-killer').textContent = t.killer;
+    document.getElementById('difficulty-label').textContent = t.difficultyLabel;
+    diffTabs.forEach(tab => {
+        const key = tab.dataset.difficulty;
+        if (t.diffs[key]) tab.textContent = t.diffs[key];
+    });
+    document.getElementById('mistakes-label').textContent = t.mistakes;
+    document.getElementById('time-label').textContent = t.time;
+    notesBadgeEl.textContent = isNotesMode ? t.on : t.off;
+    newGameBtn.textContent = t.newGame;
+    winNewGameBtn.textContent = t.newGame;
+    document.getElementById('pause-title').textContent = t.pauseTitle;
+    resumeBtn.textContent = t.resume;
+    document.getElementById('win-title').textContent = t.winTitle;
+}
 
-// The helper function to map difficulty names to clue counts
-const DIFFICULTY_CLUES = {
-    'easy': 48,    // Target: 48 clues, strictly uses technique check (Singles only)
-    'medium': 35,  // Target: ~35 clues, generally requires Pairs/Triples
-    'hard': 25,    // Target: ~25 clues, likely requires advanced techniques
-    'minima': 17   // Target: ~17-21 clues, true minimum unique solution
-};
+// --- Helpers for Notes & History ---
 
-function createGrid(board) {
+function createEmptyNotesBoard() {
+    return Array.from({ length: 9 }, () =>
+        Array.from({ length: 9 }, () => new Set())
+    );
+}
+
+function createEmptyScoredCells(puzzle) {
+    return puzzle.map(row => row.map(val => val !== 0));
+}
+
+function cloneNotesBoard(nb) {
+    return nb.map(row => row.map(set => new Set(set)));
+}
+
+function pushHistory() {
+    historyStack.push({
+        userBoard: userBoard.map(row => [...row]),
+        notesBoard: cloneNotesBoard(notesBoard),
+        selectedRow,
+        selectedCol
+    });
+    if (historyStack.length > 200) {
+        historyStack.shift();
+    }
+}
+
+// --- LocalStorage Persistence ---
+
+function saveGameState() {
+    if (isGameWon || currentPuzzle.length === 0) return;
+    try {
+        const serializedNotes = notesBoard.map(row => row.map(set => Array.from(set)));
+        const state = {
+            currentDifficulty,
+            currentPuzzle,
+            userBoard,
+            solution,
+            notesBoard: serializedNotes,
+            scoredCells,
+            currentScore,
+            elapsedSeconds
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (err) {}
+}
+
+function loadSavedGameState() {
+    if (resolvedSettings.urlChangedConfig) {
+        return false;
+    }
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const state = JSON.parse(raw);
+        if (
+            !state ||
+            !Array.isArray(state.currentPuzzle) ||
+            state.currentPuzzle.length !== 9 ||
+            !Array.isArray(state.solution) ||
+            state.solution.length !== 9
+        ) {
+            return false;
+        }
+        currentDifficulty = DIFFICULTY_CONFIG[state.currentDifficulty] ? state.currentDifficulty : 'easy';
+        currentPuzzle = state.currentPuzzle;
+        userBoard = state.userBoard;
+        solution = state.solution;
+        notesBoard = state.notesBoard.map(row => row.map(arr => new Set(arr)));
+        scoredCells = Array.isArray(state.scoredCells)
+            ? state.scoredCells
+            : createEmptyScoredCells(currentPuzzle);
+        currentScore = typeof state.currentScore === 'number' ? state.currentScore : 0;
+        elapsedSeconds = typeof state.elapsedSeconds === 'number' ? state.elapsedSeconds : 0;
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
+
+function clearSavedGameState() {
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+    } catch (err) {}
+}
+
+// --- Timer & Score Logic ---
+
+function formatTime(secs) {
+    const mins = Math.floor(secs / 60);
+    const remSecs = secs % 60;
+    const mStr = String(mins).padStart(2, '0');
+    const sStr = String(remSecs).padStart(2, '0');
+    return `${mStr}:${sStr}`;
+}
+
+function updateTimerDisplay() {
+    if (timerDisplayEl) {
+        timerDisplayEl.textContent = formatTime(elapsedSeconds);
+    }
+}
+
+function updateScoreDisplay() {
+    if (scoreDisplayEl) {
+        scoreDisplayEl.textContent = String(currentScore);
+    }
+}
+
+function startTimer() {
+    stopTimer();
+    timerInterval = setInterval(() => {
+        if (!isPaused && !isGameWon) {
+            elapsedSeconds++;
+            updateTimerDisplay();
+            if (elapsedSeconds % 5 === 0) {
+                saveGameState();
+            }
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+function togglePause(forceState) {
+    if (isGameWon) return;
+    isPaused = typeof forceState === 'boolean' ? forceState : !isPaused;
+    if (isPaused) {
+        pauseOverlayEl.style.display = 'flex';
+        pauseIconEl.style.display = 'none';
+        playIconEl.style.display = 'block';
+    } else {
+        pauseOverlayEl.style.display = 'none';
+        pauseIconEl.style.display = 'block';
+        playIconEl.style.display = 'none';
+    }
+}
+
+// --- Grid Creation & Rendering ---
+
+function buildGridDOM() {
     gridEl.innerHTML = '';
-    userBoard = board.map(row => [...row]);
-    selectedCell = null;
-    
     for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
             const cell = document.createElement('div');
-            cell.classList.add('cell');
+            cell.className = 'cell';
             cell.dataset.row = r;
             cell.dataset.col = c;
-            
-            if (board[r][c] !== 0) {
-                cell.classList.add('clue');
-                cell.textContent = board[r][c];
-            } else {
-                cell.textContent = userBoard[r][c] === 0 ? '' : userBoard[r][c];
-            }
-            // Add click listener to all cells
-            cell.addEventListener('click', () => selectCell(cell));
+            cell.setAttribute('role', 'gridcell');
+            cell.addEventListener('click', () => selectCell(r, c));
             gridEl.appendChild(cell);
         }
     }
-    recheckAllErrors(); // Clear any previous error styling
 }
 
-function selectCell(cell) {
-    if (selectedCell) {
-        selectedCell.classList.remove('selected');
+function getCellEl(r, c) {
+    return gridEl.children[r * 9 + c];
+}
+
+function hasPeerConflict(r, c, val) {
+    if (val === 0) return false;
+    for (let i = 0; i < 9; i++) {
+        if (i !== c && userBoard[r][i] === val) return true;
+        if (i !== r && userBoard[i][c] === val) return true;
     }
-    selectedCell = cell;
-    selectedCell.classList.add('selected');
-}
-
-function applyValue(value) {
-    if (!selectedCell) {
-        messageEl.textContent = '👆 Select a cell first.';
-        return;
+    const startRow = Math.floor(r / 3) * 3;
+    const startCol = Math.floor(c / 3) * 3;
+    for (let dr = 0; dr < 3; dr++) {
+        for (let dc = 0; dc < 3; dc++) {
+            const nr = startRow + dr;
+            const nc = startCol + dc;
+            if ((nr !== r || nc !== c) && userBoard[nr][nc] === val) {
+                return true;
+            }
+        }
     }
-
-    const r = parseInt(selectedCell.dataset.row);
-    const c = parseInt(selectedCell.dataset.col);
-    
-    // Protect clue cells from being overwritten
-    if (currentPuzzle[r][c] !== 0) return;
-
-    selectedCell.textContent = value === 0 ? '' : value;
-    userBoard[r][c] = value;
-
-    checkCellForError(r, c);
-    
-    if (isBoardCorrect()) {
-        gameOver(true);
-    }
+    return false;
 }
 
-function checkCellForError(r, c) {
-    recheckAllErrors(); // Recheck all cells for simplicity
+function isSameBox(r1, c1, r2, c2) {
+    return Math.floor(r1 / 3) === Math.floor(r2 / 3) &&
+           Math.floor(c1 / 3) === Math.floor(c2 / 3);
 }
 
-function recheckAllErrors() {
+function renderBoard() {
+    const selectedVal =
+        selectedRow !== null && selectedCol !== null
+            ? userBoard[selectedRow][selectedCol]
+            : 0;
+
     for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
-            // Only check user-entered cells
-            if (currentPuzzle[r][c] === 0) {
-                const cellEl = gridEl.querySelector(`[data-row="${r}"][data-col="${c}"]`);
-                // If a value exists and it doesn't match the solution, mark as error
-                if (userBoard[r][c] !== 0 && userBoard[r][c] !== solution[r][c]) {
-                    cellEl.classList.add('error');
+            const cellEl = getCellEl(r, c);
+            if (!cellEl) continue;
+
+            const isClue = currentPuzzle[r][c] !== 0;
+            const val = userBoard[r][c];
+            const isSelected = r === selectedRow && c === selectedCol;
+            const isRelated =
+                selectedRow !== null &&
+                selectedCol !== null &&
+                !isSelected &&
+                (r === selectedRow || c === selectedCol || isSameBox(r, c, selectedRow, selectedCol));
+
+            const isSameNumber = selectedVal !== 0 && val === selectedVal && !isSelected;
+            const isWrongEntry = !isClue && val !== 0 && val !== solution[r][c];
+            const isConflict = val !== 0 && hasPeerConflict(r, c, val);
+
+            const hadHintAnim = cellEl.classList.contains('hint-anim');
+            cellEl.className = 'cell';
+            if (hadHintAnim) cellEl.classList.add('hint-anim');
+
+            if (isClue) cellEl.classList.add('clue');
+            if (isRelated) cellEl.classList.add('related');
+            if (isSameNumber) cellEl.classList.add('same-number');
+            if (isConflict) cellEl.classList.add('conflict');
+            if (isSelected) cellEl.classList.add('selected');
+            if (isWrongEntry) cellEl.classList.add('error');
+
+            if (val !== 0) {
+                cellEl.textContent = val;
+            } else {
+                const notes = notesBoard[r][c];
+                if (notes && notes.size > 0) {
+                    const notesGrid = document.createElement('div');
+                    notesGrid.className = 'notes-grid';
+                    for (let n = 1; n <= 9; n++) {
+                        const span = document.createElement('span');
+                        span.className = 'note-num';
+                        if (notes.has(n)) {
+                            span.textContent = n;
+                            if (selectedVal !== 0 && n === selectedVal) {
+                                span.classList.add('highlight-note');
+                            }
+                        }
+                        notesGrid.appendChild(span);
+                    }
+                    cellEl.innerHTML = '';
+                    cellEl.appendChild(notesGrid);
                 } else {
-                    cellEl.classList.remove('error');
+                    cellEl.textContent = '';
                 }
             }
         }
     }
+
+    updateNumberPadCompletion();
 }
 
-function isBoardCorrect() {
+function updateNumberPadCompletion() {
+    const counts = Array(10).fill(0);
     for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
-            // Check for empty cells or incorrect values
-            if (userBoard[r][c] === 0 || userBoard[r][c] !== solution[r][c]) {
+            const val = userBoard[r][c];
+            if (val !== 0 && val === solution[r][c]) {
+                counts[val]++;
+            }
+        }
+    }
+
+    numButtons.forEach(btn => {
+        const num = parseInt(btn.dataset.value, 10);
+        if (counts[num] >= 9) {
+            btn.classList.add('completed');
+        } else {
+            btn.classList.remove('completed');
+        }
+    });
+}
+
+// --- Cell Selection & Input ---
+
+function selectCell(r, c) {
+    if (isPaused || isGameWon) return;
+    selectedRow = r;
+    selectedCol = c;
+    renderBoard();
+}
+
+function removePeerNotes(row, col, num) {
+    for (let i = 0; i < 9; i++) {
+        notesBoard[row][i].delete(num);
+        notesBoard[i][col].delete(num);
+    }
+    const startRow = Math.floor(row / 3) * 3;
+    const startCol = Math.floor(col / 3) * 3;
+    for (let dr = 0; dr < 3; dr++) {
+        for (let dc = 0; dc < 3; dc++) {
+            notesBoard[startRow + dr][startCol + dc].delete(num);
+        }
+    }
+}
+
+function awardScoreIfFirstTime(r, c) {
+    if (!scoredCells[r][c]) {
+        scoredCells[r][c] = true;
+        currentScore += 50;
+        updateScoreDisplay();
+    }
+}
+
+function applyValue(value) {
+    if (isPaused || isGameWon) return;
+    if (selectedRow === null || selectedCol === null) return;
+
+    const r = selectedRow;
+    const c = selectedCol;
+
+    if (currentPuzzle[r][c] !== 0) {
+        return;
+    }
+
+    if (value === 0) {
+        if (userBoard[r][c] === 0 && notesBoard[r][c].size === 0) return;
+        pushHistory();
+        userBoard[r][c] = 0;
+        notesBoard[r][c].clear();
+        renderBoard();
+        saveGameState();
+        return;
+    }
+
+    if (isNotesMode) {
+        pushHistory();
+        if (userBoard[r][c] !== 0 && userBoard[r][c] !== solution[r][c]) {
+            userBoard[r][c] = 0;
+        }
+        if (userBoard[r][c] === 0) {
+            if (notesBoard[r][c].has(value)) {
+                notesBoard[r][c].delete(value);
+            } else {
+                notesBoard[r][c].add(value);
+            }
+        }
+        renderBoard();
+        saveGameState();
+        return;
+    }
+
+    pushHistory();
+
+    if (userBoard[r][c] === value) {
+        userBoard[r][c] = 0;
+    } else {
+        userBoard[r][c] = value;
+        notesBoard[r][c].clear();
+        if (value === solution[r][c]) {
+            removePeerNotes(r, c, value);
+            awardScoreIfFirstTime(r, c);
+        }
+    }
+
+    renderBoard();
+    saveGameState();
+
+    if (isBoardSolved()) {
+        handleGameWon();
+    }
+}
+
+// --- Action Buttons: Undo, Erase, Notes, Hint ---
+
+function handleUndo() {
+    if (isPaused || isGameWon || historyStack.length === 0) return;
+    const prev = historyStack.pop();
+    userBoard = prev.userBoard;
+    notesBoard = prev.notesBoard;
+    if (prev.selectedRow !== null && prev.selectedCol !== null) {
+        selectedRow = prev.selectedRow;
+        selectedCol = prev.selectedCol;
+    }
+    renderBoard();
+    saveGameState();
+}
+
+function handleErase() {
+    applyValue(0);
+}
+
+function toggleNotesMode(forceState) {
+    if (isPaused || isGameWon) return;
+    const t = I18N[currentLang] || I18N.de;
+    isNotesMode = typeof forceState === 'boolean' ? forceState : !isNotesMode;
+    if (isNotesMode) {
+        notesBtn.classList.add('active');
+        notesBadgeEl.textContent = t.on;
+        notesBadgeEl.classList.add('on');
+    } else {
+        notesBtn.classList.remove('active');
+        notesBadgeEl.textContent = t.off;
+        notesBadgeEl.classList.remove('on');
+    }
+}
+
+function handleHint() {
+    if (isPaused || isGameWon) return;
+
+    let targetR = null;
+    let targetC = null;
+
+    if (
+        selectedRow !== null &&
+        selectedCol !== null &&
+        currentPuzzle[selectedRow][selectedCol] === 0 &&
+        userBoard[selectedRow][selectedCol] !== solution[selectedRow][selectedCol]
+    ) {
+        targetR = selectedRow;
+        targetC = selectedCol;
+    }
+
+    if (targetR === null) {
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (
+                    currentPuzzle[r][c] === 0 &&
+                    userBoard[r][c] !== 0 &&
+                    userBoard[r][c] !== solution[r][c]
+                ) {
+                    targetR = r;
+                    targetC = c;
+                    break;
+                }
+            }
+            if (targetR !== null) break;
+        }
+    }
+
+    if (targetR === null) {
+        let bestCount = 10;
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (userBoard[r][c] === 0) {
+                    const cands = findCandidates(userBoard, r, c);
+                    const count = cands.length > 0 ? cands.length : 9;
+                    if (count < bestCount) {
+                        bestCount = count;
+                        targetR = r;
+                        targetC = c;
+                    }
+                }
+            }
+        }
+    }
+
+    if (targetR === null || targetC === null) return;
+
+    pushHistory();
+    selectedRow = targetR;
+    selectedCol = targetC;
+    const correctNum = solution[targetR][targetC];
+    userBoard[targetR][targetC] = correctNum;
+    notesBoard[targetR][targetC].clear();
+    removePeerNotes(targetR, targetC, correctNum);
+    awardScoreIfFirstTime(targetR, targetC);
+
+    renderBoard();
+    saveGameState();
+
+    const cellEl = getCellEl(targetR, targetC);
+    if (cellEl) {
+        cellEl.classList.remove('hint-anim');
+        void cellEl.offsetWidth;
+        cellEl.classList.add('hint-anim');
+    }
+
+    if (isBoardSolved()) {
+        handleGameWon();
+    }
+}
+
+// --- Win Check & Game Over ---
+
+function isBoardSolved() {
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (userBoard[r][c] !== solution[r][c]) {
                 return false;
             }
         }
@@ -338,130 +962,167 @@ function isBoardCorrect() {
     return true;
 }
 
-function gameOver(win) {
-    if (win) {
-        messageEl.textContent = '🎉 Gelöst!';
-        trophyEl.classList.add('trophy-shown');
-        numberPadEl.style.pointerEvents = 'none';
-        gridEl.style.pointerEvents = 'none';
+function handleGameWon() {
+    isGameWon = true;
+    stopTimer();
+    clearSavedGameState();
 
-        setTimeout(() => {
-            newGame();
-        }, 100000);
+    const t = I18N[currentLang] || I18N.de;
+    const diffLabel = t.diffs[currentDifficulty] || t.diffs.easy;
+    winStatsTextEl.textContent = `${diffLabel} • ${formatTime(elapsedSeconds)}`;
+    winOverlayEl.style.display = 'flex';
+
+    if (autoNewGameTimeout) clearTimeout(autoNewGameTimeout);
+    autoNewGameTimeout = setTimeout(() => {
+        newGame(currentDifficulty);
+    }, 100000);
+}
+
+// --- Starting / Restoring a Game ---
+
+function updateDifficultyTabsUI(difficulty) {
+    diffTabs.forEach(tab => {
+        const isMatch = tab.dataset.difficulty === difficulty;
+        tab.classList.toggle('active', isMatch);
+        tab.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+    });
+}
+
+function selectInitialCell() {
+    selectedRow = 0;
+    selectedCol = 0;
+}
+
+function newGame(difficulty = currentDifficulty) {
+    if (autoNewGameTimeout) {
+        clearTimeout(autoNewGameTimeout);
+        autoNewGameTimeout = null;
+    }
+
+    currentDifficulty = DIFFICULTY_CONFIG[difficulty] ? difficulty : 'easy';
+    updateDifficultyTabsUI(currentDifficulty);
+
+    isGameWon = false;
+    isPaused = false;
+    winOverlayEl.style.display = 'none';
+    pauseOverlayEl.style.display = 'none';
+    pauseIconEl.style.display = 'block';
+    playIconEl.style.display = 'none';
+    messageEl.textContent = '';
+
+    const targetClues = DIFFICULTY_CONFIG[currentDifficulty].clues;
+
+    setTimeout(() => {
+        const generated = generateSudokuPuzzle(targetClues, currentDifficulty);
+        currentPuzzle = generated.puzzle;
+        solution = generated.solution;
+        userBoard = currentPuzzle.map(row => [...row]);
+        notesBoard = createEmptyNotesBoard();
+        scoredCells = createEmptyScoredCells(currentPuzzle);
+        currentScore = 0;
+        historyStack = [];
+        elapsedSeconds = 0;
+
+        updateTimerDisplay();
+        updateScoreDisplay();
+        buildGridDOM();
+        selectInitialCell();
+        renderBoard();
+        saveGameState();
+        startTimer();
+    }, 10);
+}
+
+function initGame() {
+    applyLanguageUI();
+    if (loadSavedGameState() && !isBoardSolved()) {
+        updateDifficultyTabsUI(currentDifficulty);
+        updateTimerDisplay();
+        updateScoreDisplay();
+        buildGridDOM();
+        selectInitialCell();
+        renderBoard();
+        startTimer();
+    } else {
+        newGame('easy');
     }
 }
 
-/**
- * Starts a new game with the selected difficulty.
- * @param {string} difficulty The difficulty level (e.g., 'easy', 'medium', 'hard').
- */
-function newGame(difficulty = 'easy') {
-    const targetClues = DIFFICULTY_CLUES[difficulty] || DIFFICULTY_CLUES['easy'];
-    
-    messageEl.textContent = `Generating ${difficulty.toUpperCase()} Puzzle (Target Clues > ${targetClues})... Please wait.`;
-    gridEl.style.opacity = '0.5';
-    trophyEl.classList.remove('trophy-shown');
-    numberPadEl.style.pointerEvents = 'auto';
-    gridEl.style.pointerEvents = 'auto';
+// --- Keyboard Navigation & Shortcuts ---
 
-    // Use a short timeout to prevent UI freeze during generation
-    setTimeout(() => {
-        currentPuzzle = generateSudokuPuzzle(targetClues, difficulty);
-        
-        // Solve the puzzle copy to get the solution
-        solution = currentPuzzle.map(row => [...row]);
-        solve(solution, 1);
-        
-        createGrid(currentPuzzle);
-        messageEl.textContent = `Dieters Sudoku - ${difficulty.toUpperCase()}`;
-        gridEl.style.opacity = '1';
-    }, 50); 
+function handleNavigation(key) {
+    if (isPaused || isGameWon) return;
+    let r = selectedRow !== null ? selectedRow : 0;
+    let c = selectedCol !== null ? selectedCol : 0;
+
+    if (key === 'ArrowUp' || key === 'w' || key === 'W') r = (r - 1 + 9) % 9;
+    if (key === 'ArrowDown' || key === 's' || key === 'S') r = (r + 1) % 9;
+    if (key === 'ArrowLeft' || key === 'a' || key === 'A') c = (c - 1 + 9) % 9;
+    if (key === 'ArrowRight' || key === 'd' || key === 'D') c = (c + 1) % 9;
+
+    selectCell(r, c);
 }
 
-// --- Keyboard Input Logic ---
-
 document.addEventListener('keydown', (e) => {
-    // 1. Navigation
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        e.preventDefault(); 
+        e.preventDefault();
         handleNavigation(e.key);
         return;
     }
 
-    // 2. Numbers 1-9
-    const num = parseInt(e.key);
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        handleUndo();
+        return;
+    }
+
+    if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        toggleNotesMode();
+        return;
+    }
+
+    const num = parseInt(e.key, 10);
     if (num >= 1 && num <= 9) {
+        e.preventDefault();
         applyValue(num);
         return;
     }
 
-    // 3. Clear (Backspace, Delete, or 0)
     if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+        e.preventDefault();
         applyValue(0);
-        return;
     }
 });
 
+// --- Event Listeners ---
 
-function handleNavigation(key) {
-    let r = 0;
-    let c = 0;
+newGameBtn.addEventListener('click', () => newGame(currentDifficulty));
+winNewGameBtn.addEventListener('click', () => newGame(currentDifficulty));
 
-    if (!selectedCell) {
-        r = 0; c = 0;
-    } else {
-        r = parseInt(selectedCell.dataset.row);
-        c = parseInt(selectedCell.dataset.col);
-
-        if (key === 'ArrowUp') r = (r - 1 + 9) % 9;
-        if (key === 'ArrowDown') r = (r + 1) % 9;
-        if (key === 'ArrowLeft') c = (c - 1 + 9) % 9;
-        if (key === 'ArrowRight') c = (c + 1) % 9;
-    }
-
-    const nextCell = gridEl.querySelector(`[data-row="${r}"][data-col="${c}"]`);
-    if (nextCell) {
-        selectCell(nextCell);
-    }
-}
-
-// --- Event Listeners and Initialization ---
-
-// Event listener for the New Game Button
-newGameBtn.addEventListener('click', () => {
-    const selectedDifficulty = difficultySelectEl ? difficultySelectEl.value : 'easy';
-    newGame(selectedDifficulty);
-});
-
-// Event listener for the Difficulty Selector
-if (difficultySelectEl) {
-    difficultySelectEl.addEventListener('change', (e) => {
-        newGame(e.target.value);
+diffTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        const diff = tab.dataset.difficulty;
+        newGame(diff);
     });
-}
+});
 
-// Event listener for the Number Pad
-// document.querySelectorAll('.num-button').forEach(button => {
-//     button.addEventListener('click', (e) => {
-//         const value = parseInt(e.target.dataset.value);
-//         applyValue(value);
-//     });
-// });
+undoBtn.addEventListener('click', handleUndo);
+eraseBtn.addEventListener('click', handleErase);
+notesBtn.addEventListener('click', () => toggleNotesMode());
+hintBtn.addEventListener('click', handleHint);
 
+timerToggleEl.addEventListener('click', () => togglePause());
+resumeBtn.addEventListener('click', () => togglePause(false));
 
-// Event listener for the Number Pad
-document.querySelectorAll('.num-button').forEach(button => {
-    button.addEventListener('click', (e) => {
-        let value = parseInt(e.target.dataset.value); 
-        
-        // **SAFTEY CHECK ADDED HERE**
+numButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        let value = parseInt(button.dataset.value, 10);
         if (isNaN(value)) {
-            value = 0; // Assume any non-numeric value from the number pad is a request to clear/erase
+            value = 0;
         }
-        
         applyValue(value);
     });
 });
 
-// Start the first game
-newGame('easy');
+initGame();

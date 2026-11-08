@@ -1,61 +1,190 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minima Sudoku</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sudoku.com</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div id="sudoku-container">
-            <div id="sudoku-grid" class="sudoku-grid"></div>
-            <div id="trophy-display">🏆</div>
-        </div>
-
-        <div class="side-panel">
-            <div id="message"></div>
-            
-            <div class="number-pad" id="number-pad">
-                <div class="num-button" data-value="1">1</div>
-                <div class="num-button" data-value="2">2</div>
-                <div class="num-button" data-value="3">3</div>
-                <div class="num-button" data-value="4">4</div>
-                <div class="num-button" data-value="5">5</div>
-                <div class="num-button" data-value="6">6</div>
-                <div class="num-button" data-value="7">7</div>
-                <div class="num-button" data-value="8">8</div>
-                <div class="num-button" data-value="9">9</div>
-                <div class="num-button clear-button" data-value="0">Löschen</div>
-            </div>
-
-            <div class="controls">
-                <button id="new-game-btn">Neues Spiel</button>
+    <!-- Top Header Bar matching sudoku.com screenshot -->
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="header-left">
+                <button class="burger-btn" aria-label="Menü" tabindex="-1">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <div class="brand" id="brand-logo">Sudoku.com</div>
+                <nav class="header-nav">
+                    <span class="nav-item active" id="nav-classic">Klassisch</span>
+                    <span class="nav-item" id="nav-killer">Killer</span>
+                </nav>
             </div>
         </div>
-    </div>
+    </header>
 
-    <div id="controls">
-        <button id="new-game-btn">🔄 New Game</button>
+    <!-- Main Content Wrapper -->
+    <main class="main-wrapper">
+        <!-- Sub-header Bar: Difficulty Tabs + Score + Streak -->
+        <div class="game-info-bar">
+            <div class="difficulty-bar" role="tablist" aria-label="Schwierigkeitsgrad">
+                <span class="difficulty-label" id="difficulty-label">Schwierigkeitsgrad:</span>
+                <button class="diff-tab active" data-difficulty="easy" role="tab" aria-selected="true">Einfach</button>
+                <button class="diff-tab" data-difficulty="medium" role="tab" aria-selected="false">Mittel</button>
+                <button class="diff-tab" data-difficulty="hard" role="tab" aria-selected="false">Schwer</button>
+                <button class="diff-tab" data-difficulty="expert" role="tab" aria-selected="false">Experte</button>
+                <button class="diff-tab" data-difficulty="master" role="tab" aria-selected="false">Meister</button>
+                <button class="diff-tab" data-difficulty="extreme" role="tab" aria-selected="false">Extrem</button>
+            </div>
 
-        <label for="difficulty-select">Choose Difficulty:</label>
-        <select id="difficulty-select">
-            <option value="easy" selected>⭐ Easy (Singles Only)</option>
-            <option value="medium">🟠 Medium (Pairs/Triples)</option>
-            <option value="hard">🔴 Hard (Advanced Logic)</option>
-            <option value="minima">🔥 Minima (17 Clues)</option>
-        </select>
-    </div>
+            <div class="score-display" id="score-display">0</div>
+
+            <div class="streak-display">
+                <svg class="flame-icon" viewBox="0 0 24 24" width="22" height="22" fill="none">
+                    <path d="M12 2C12 2 6 8 6 13.5C6 17.09 8.69 20 12 20C15.31 20 18 17.09 18 13.5C18 11.2 16.8 8.9 15.2 7.1C15.1 8.6 14.2 9.6 13.2 9.6C12.2 9.6 11.8 8.4 12 6.5C12.2 4.6 12 2 12 2Z" stroke="#b0bac9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span id="streak-count">0</span>
+            </div>
+        </div>
+
+        <!-- Game Area: Sudoku Board (Left) + Controls (Right) -->
+        <div class="game-layout">
+            <!-- Sudoku Grid Container -->
+            <div class="board-container" id="sudoku-container">
+                <div id="sudoku-grid" class="sudoku-grid" role="grid" aria-label="Sudoku Spielfeld"></div>
+
+                <!-- Pause Overlay -->
+                <div id="pause-overlay" class="board-overlay" style="display: none;">
+                    <div class="overlay-card">
+                        <div class="overlay-title" id="pause-title">Spiel pausiert</div>
+                        <button id="resume-btn" class="primary-btn">Weiter</button>
+                    </div>
+                </div>
+
+                <!-- Win / Trophy Overlay -->
+                <div id="win-overlay" class="board-overlay win-overlay" style="display: none;">
+                    <div class="overlay-card">
+                        <div class="win-trophy" id="trophy-display">🏆</div>
+                        <h2 class="win-title" id="win-title">Ausgezeichnet!</h2>
+                        <p class="win-subtitle" id="win-stats-text">Rätsel gelöst</p>
+                        <button id="win-new-game-btn" class="primary-btn">Neues Spiel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side Panel (Exact vertical order from screenshot) -->
+            <div class="side-panel">
+                <!-- 1. Top Stats Row: Mistakes 0/3 (left) & Time 00:00 + Pause (right) -->
+                <div class="panel-stats-row">
+                    <div class="mistakes-box">
+                        <span class="stat-label" id="mistakes-label">Fehler</span>
+                        <span class="stat-value" id="mistakes-value">0/3</span>
+                    </div>
+
+                    <div class="time-box" id="timer-toggle" title="Pause / Weiter">
+                        <div class="time-text-col">
+                            <span class="stat-label" id="time-label">Zeit</span>
+                            <span class="stat-value" id="timer-display">00:00</span>
+                        </div>
+                        <button class="pause-btn" id="pause-btn" aria-label="Pause">
+                            <svg id="pause-icon" viewBox="0 0 24 24" width="14" height="14">
+                                <rect x="6" y="5" width="3.5" height="14" rx="1" fill="currentColor"/>
+                                <rect x="14.5" y="5" width="3.5" height="14" rx="1" fill="currentColor"/>
+                            </svg>
+                            <svg id="play-icon" viewBox="0 0 24 24" width="14" height="14" style="display:none;">
+                                <polygon points="7,5 19,12 7,19" fill="currentColor"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. 4 Circular Action Buttons (Icon-only like screenshot) -->
+                <div class="action-bar">
+                    <button class="action-btn" id="undo-btn" title="Rückgängig" aria-label="Rückgängig">
+                        <div class="action-icon-circle">
+                            <svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9.5 8.5L6 5l3.5-3.5" transform="translate(0, 3)"/>
+                                <path d="M6 8h7.5a6.5 6.5 0 1 1-5.2 10.4"/>
+                            </svg>
+                        </div>
+                    </button>
+
+                    <button class="action-btn" id="erase-btn" title="Löschen" aria-label="Löschen">
+                        <div class="action-icon-circle">
+                            <svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16.5 5.5l6 6L11 23H6.5L4 20.5 16.5 5.5z"/>
+                                <path d="M12.5 9.5l6 6"/>
+                                <line x1="15" y1="23" x2="22" y2="23"/>
+                            </svg>
+                        </div>
+                    </button>
+
+                    <button class="action-btn" id="notes-btn" title="Notizen" aria-label="Notizen">
+                        <div class="action-icon-circle">
+                            <span class="badge notes-badge" id="notes-badge">AUS</span>
+                            <svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18.5 4.5a2.12 2.12 0 0 1 3 3L9 20l-4.5 1.5L6 17 18.5 4.5z"/>
+                                <path d="M15.5 7.5l3 3"/>
+                                <line x1="13" y1="21.5" x2="22" y2="21.5"/>
+                            </svg>
+                        </div>
+                    </button>
+
+                    <button class="action-btn" id="hint-btn" title="Tipp" aria-label="Tipp">
+                        <div class="action-icon-circle">
+                            <span class="badge hint-badge" id="hint-badge">3</span>
+                            <svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10.5 20h7"/>
+                                <path d="M12 23.5h4"/>
+                                <path d="M17.2 16.2c.3-.9.9-1.6 1.6-2.4A6.5 6.5 0 1 0 7.5 9.5c0 1.7.6 3.1 1.7 4.3.7.8 1.3 1.5 1.6 2.4"/>
+                            </svg>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- 3. 1-9 Number Pad (3x3 Grid) -->
+                <div class="number-pad" id="number-pad">
+                    <button class="num-button" data-value="1">1</button>
+                    <button class="num-button" data-value="2">2</button>
+                    <button class="num-button" data-value="3">3</button>
+                    <button class="num-button" data-value="4">4</button>
+                    <button class="num-button" data-value="5">5</button>
+                    <button class="num-button" data-value="6">6</button>
+                    <button class="num-button" data-value="7">7</button>
+                    <button class="num-button" data-value="8">8</button>
+                    <button class="num-button" data-value="9">9</button>
+                </div>
+
+                <!-- 4. Bottom "New Game" / "Neues Spiel" Button -->
+                <button id="new-game-btn" class="new-game-btn">Neues Spiel</button>
+
+                <div id="message" class="status-message" aria-live="polite"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <p class="footer-hint">
+                <strong>Tipp (noch leichter einstellen):</strong> Hänge einen Parameter an die URL an (wird dauerhaft im Browser gespeichert):
+                <a href="?easy=1"><code>?easy=1</code></a> (56 Vorgaben) ·
+                <a href="?easy=2"><code>?easy=2</code></a> (63 Vorgaben) ·
+                <a href="?easy=3"><code>?easy=3</code></a> (70 Vorgaben) ·
+                <a href="?clues=60"><code>?clues=35..78</code></a> (exakte Anzahl) ·
+                <a href="?reset=1"><code>?reset=1</code></a> (Standard: 47) ·
+                Sprache: <a href="?lang=de"><code>?lang=de</code></a> / <a href="?lang=en"><code>?lang=en</code></a> ·
+                <a href="https://github.com/userrand6/ForgotSudoku" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </p>
+        </div>
+    </footer>
 
     <script src="script.js"></script>
-
-<footer>
-    <p>View source on 
-        <a href="https://github.com/userrand6/ForgotSudoku" target="_blank" rel="noopener noreferrer">
-            GitHub
-        </a>
-    </p>
-</footer>
-
 </body>
 </html>
